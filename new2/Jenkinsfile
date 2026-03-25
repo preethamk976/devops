@@ -1,0 +1,26 @@
+pipeline {
+    agent any 
+    environment {
+        // Use your Docker Hub username here
+        REGISTRY_USER = "yourusername"
+        IMAGE_NAME = "demo-app"
+    }
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building Docker Image...'
+                sh "docker build -t ${REGISTRY_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER} ."
+            }
+        }
+        stage('Login & Push') {
+            steps {
+                // 'docker-hub-creds' is the ID you set in Jenkins Credentials
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', 
+                                 passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                    sh "echo ${PASS} | docker login -u ${USER} --password-stdin"
+                    sh "docker push ${REGISTRY_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}"
+                }
+            }
+        }
+    }
+}
