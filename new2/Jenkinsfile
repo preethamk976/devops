@@ -1,25 +1,46 @@
 pipeline {
-    agent any 
+    agent any
+
     environment {
-        // Use your Docker Hub username here
-        REGISTRY_USER = "yourusername"
-        IMAGE_NAME = "demo-app"
+        DOCKERHUB_CREDENTIALS = 'dock'
+        IMAGE_NAME = 'preeth97/dock-desktop'
     }
+
     stages {
-        stage('Build') {
+
+        stage('Build Java Application') {
             steps {
-                echo 'Building Docker Image...'
-                sh "docker build -t ${REGISTRY_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER} ."
+                bat 'javac hello.java'
             }
         }
-        stage('Login & Push') {
+
+        stage('Run Java Program') {
             steps {
-                // 'docker-hub-creds' is the ID you set in Jenkins Credentials
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', 
-                                 passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                    sh "echo ${PASS} | docker login -u ${USER} --password-stdin"
-                    sh "docker push ${REGISTRY_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}"
+                bat 'java hello'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                bat 'docker build -t %IMAGE_NAME%:latest .'
+            }
+        }
+
+        stage('Login to DockerHub') {
+            steps {
+                withCredentials([usernamePassword(
+                credentialsId: 'Docker-credentials',
+                usernameVariable: 'USER',
+                passwordVariable: 'PASS')]) {
+
+                    bat 'echo %PASS% | docker login -u %USER% --password-stdin'
                 }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                bat 'docker push %IMAGE_NAME%:latest'
             }
         }
     }
